@@ -22,8 +22,8 @@ title: Learn Devops skills in easy manner
 email: purushothamkdr453@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   Learn Devops skills in easy manner
-baseurl: "/my-blog" # the subpath of your site, e.g. /blog
-url: "https://purushothamkdr453.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "https://devopsbypr.in/" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  purushothamkdr453
 
 # Build settings

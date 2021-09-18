@@ -18,16 +18,17 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Learn Devops skills in easy manner
+title: Learn Devops in easy manner
 email: purushothamkdr453@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
-  Learn Devops skills in easy manner
+  Learn Devops in easy manner
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "https://devopsbypr.in/" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  purushothamkdr453
 linkedin_username: purushotham-reddy-893877118
 
 author: purushotham reddy
+copyright: "devopsbypr.in"
 # Build settings
 theme: minima
 plugins:

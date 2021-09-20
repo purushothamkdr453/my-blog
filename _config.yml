@@ -23,7 +23,7 @@ email: purushothamkdr453@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   Learn Devops in easy manner
 baseurl: "" # the subpath of your site, e.g. /blog
-url: "https://devopsbypr.in/" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://devopsbypr.in" # the base hostname & protocol for your site, e.g. http://example.com
 github_username:  purushothamkdr453
 linkedin_username: purushotham-reddy-893877118
 

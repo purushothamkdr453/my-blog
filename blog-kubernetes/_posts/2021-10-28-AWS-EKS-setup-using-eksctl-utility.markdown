@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Kubernetes Introduction"
-date:   2021-10-28 11:10:00 +0530
+title:  "AWS EKS setup using eksctl utility"
+date:   2021-10-28 04:00:00 +0530
 category: kubernetes
 ---
 - [EKS](#eks)
@@ -100,233 +100,136 @@ you can get the `<account-id>` in aws console -> support -> support center -> Le
 
 ```
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "EC2IG",
-      "Effect": "Allow",
-      "Action": "ec2:DeleteInternetGateway",
-      "Resource": "arn:aws:ec2:*:*:internet-gateway/*"
-    },
-    {
-      "Sid": "ELBIAM",
-      "Effect": "Allow",
-      "Action": "iam:CreateServiceLinkedRole",
-      "Resource": "*",
-      "Condition": {
-        "StringEquals": {
-          "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com"
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "ec2:*",
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "elasticloadbalancing:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "cloudwatch:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "autoscaling:*",
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "cloudformation:*"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "eks:*",
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:GetParameters"
+            ],
+            "Resource": [
+                "arn:aws:ssm:*:<account-id>:parameter/aws/*",
+                "arn:aws:ssm:*::parameter/aws/*"
+            ],
+            "Effect": "Allow"
+        },
+        {
+             "Action": [
+               "kms:CreateGrant",
+               "kms:DescribeKey"
+             ],
+             "Resource": "*",
+             "Effect": "Allow"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:AWSServiceName": [
+                        "autoscaling.amazonaws.com",
+                        "ec2scheduled.amazonaws.com",
+                        "elasticloadbalancing.amazonaws.com",
+                        "spot.amazonaws.com",
+                        "spotfleet.amazonaws.com",
+                        "transitgateway.amazonaws.com"
+                    ]
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateInstanceProfile",
+                "iam:DeleteInstanceProfile",
+                "iam:GetInstanceProfile",
+                "iam:RemoveRoleFromInstanceProfile",
+                "iam:GetRole",
+                "iam:CreateRole",
+                "iam:DeleteRole",
+                "iam:AttachRolePolicy",
+                "iam:PutRolePolicy",
+                "iam:ListInstanceProfiles",
+                "iam:AddRoleToInstanceProfile",
+                "iam:ListInstanceProfilesForRole",
+                "iam:PassRole",
+                "iam:DetachRolePolicy",
+                "iam:DeleteRolePolicy",
+                "iam:GetRolePolicy",
+                "iam:GetOpenIDConnectProvider",
+                "iam:CreateOpenIDConnectProvider",
+                "iam:DeleteOpenIDConnectProvider",
+                "iam:TagOpenIDConnectProvider",                
+                "iam:ListAttachedRolePolicies",
+                "iam:TagRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::<account-id>:instance-profile/eksctl-*",
+                "arn:aws:iam::<account-id>:role/eksctl-*",
+                "arn:aws:iam::<account-id>:oidc-provider/*",
+                "arn:aws:iam::<account-id>:role/aws-service-role/eks-nodegroup.amazonaws.com/AWSServiceRoleForAmazonEKSNodegroup",
+                "arn:aws:iam::<account-id>:role/eksctl-managed-*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:GetRole"
+            ],
+            "Resource": [
+                "arn:aws:iam::<account-id>:role/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "iam:CreateServiceLinkedRole"
+            ],
+            "Resource": "*",
+            "Condition": {
+                "StringEquals": {
+                    "iam:AWSServiceName": [
+                        "eks.amazonaws.com",
+                        "eks-nodegroup.amazonaws.com",
+                        "eks-fargate.amazonaws.com"
+                    ]
+                }
+            }
         }
-      }
-    },
-    {
-      "Sid": "IAM",
-      "Effect": "Allow",
-      "Action": [
-        "iam:CreateInstanceProfile",
-        "iam:DeleteInstanceProfile",
-        "iam:GetRole",
-        "iam:GetInstanceProfile",
-        "iam:RemoveRoleFromInstanceProfile",
-        "iam:CreateRole",
-        "iam:DeleteRole",
-        "iam:AttachRolePolicy",
-        "iam:PutRolePolicy",
-        "iam:ListInstanceProfiles",
-        "iam:AddRoleToInstanceProfile",
-        "iam:ListInstanceProfilesForRole",
-        "iam:PassRole",
-        "iam:CreateServiceLinkedRole",
-        "iam:DetachRolePolicy",
-        "iam:DeleteRolePolicy",
-        "iam:DeleteServiceLinkedRole",
-        "iam:GetRolePolicy",
-        "iam:ListAttachedRolePolicies"
-      ],
-      "Resource": [
-        "arn:aws:iam::*:instance-profile/eksctl-*",
-        "arn:aws:iam::*:role/eksctl-*",
-        "arn:aws:iam::*:role/aws-service-role/eks.amazonaws.com/*",
-        "arn:aws:iam::*:role/aws-service-role/eks-nodegroup.amazonaws.com/*"
-      ]
-    },
-    {
-      "Sid": "IAMOIDC",
-      "Effect": "Allow",
-      "Action": "iam:GetOpenIDConnectProvider",
-      "Resource": "arn:aws:iam::<account-id>:oidc-provider/oidc.eks.eu-west-1.amazonaws.com/*"
-    },
-    {
-      "Sid": "EC2",
-      "Effect": "Allow",
-      "Action": [
-        "ec2:AuthorizeSecurityGroupIngress",
-        "ec2:DescribeInstances",
-        "ec2:AttachInternetGateway",
-        "ec2:DeleteRouteTable",
-        "ec2:RevokeSecurityGroupEgress",
-        "ec2:CreateRoute",
-        "ec2:CreateInternetGateway",
-        "ec2:DescribeVolumes",
-        "ec2:DeleteInternetGateway",
-        "ec2:DescribeKeyPairs",
-        "ec2:ImportKeyPair",
-        "ec2:CreateTags",
-        "ec2:RunInstances",
-        "ec2:DisassociateRouteTable",
-        "ec2:CreateVolume",
-        "ec2:RevokeSecurityGroupIngress",
-        "ec2:DescribeImageAttribute",
-        "ec2:DeleteNatGateway",
-        "ec2:CreateSubnet",
-        "ec2:DescribeSubnets",
-        "ec2:AttachVolume",
-        "ec2:CreateNatGateway",
-        "ec2:CreateVpc",
-        "ec2:DescribeVpcAttribute",
-        "ec2:ModifySubnetAttribute",
-        "ec2:DescribeAvailabilityZones",
-        "ec2:ReleaseAddress",
-        "ec2:DeleteLaunchTemplate",
-        "ec2:DescribeSecurityGroups",
-        "ec2:CreateLaunchTemplate",
-        "ec2:DescribeVpcs",
-        "ec2:DeleteSubnet",
-        "ec2:DescribeVolumesModifications",
-        "ec2:AssociateRouteTable",
-        "ec2:DescribeInternetGateways",
-        "ec2:DeleteVolume",
-        "ec2:DescribeAccountAttributes",
-        "ec2:DescribeRouteTables",
-        "ec2:DetachVolume",
-        "ec2:ModifyVolume",
-        "ec2:DescribeLaunchTemplates",
-        "ec2:CreateRouteTable",
-        "ec2:DetachInternetGateway",
-        "ec2:DeleteVpc",
-        "ec2:DescribeAddresses",
-        "ec2:DeleteTags",
-        "ec2:DescribeDhcpOptions",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:CreateSecurityGroup",
-        "ec2:ModifyVpcAttribute",
-        "ec2:ModifyInstanceAttribute",
-        "ec2:AuthorizeSecurityGroupEgress",
-        "ec2:DescribeTags",
-        "ec2:DeleteRoute",
-        "ec2:DescribeLaunchTemplateVersions",
-        "ec2:DescribeNatGateways",
-        "ec2:AllocateAddress",
-        "ec2:DescribeImages",
-        "ec2:DeleteSecurityGroup"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ELB",
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:ModifyListener",
-        "elasticloadbalancing:SetLoadBalancerPoliciesForBackendServer",
-        "elasticloadbalancing:CreateTargetGroup",
-        "elasticloadbalancing:AddTags",
-        "elasticloadbalancing:DeleteLoadBalancerListeners",
-        "elasticloadbalancing:ModifyLoadBalancerAttributes",
-        "elasticloadbalancing:CreateLoadBalancerPolicy",
-        "elasticloadbalancing:CreateLoadBalancer",
-        "elasticloadbalancing:DeleteTargetGroup",
-        "elasticloadbalancing:SetLoadBalancerPoliciesOfListener",
-        "elasticloadbalancing:DescribeTargetGroups",
-        "elasticloadbalancing:DeleteListener",
-        "elasticloadbalancing:DetachLoadBalancerFromSubnets",
-        "elasticloadbalancing:RegisterTargets",
-        "elasticloadbalancing:DeleteLoadBalancer",
-        "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeLoadBalancerPolicies",
-        "elasticloadbalancing:ModifyTargetGroupAttributes",
-        "elasticloadbalancing:DeregisterInstancesFromLoadBalancer",
-        "elasticloadbalancing:RegisterInstancesWithLoadBalancer",
-        "elasticloadbalancing:DeregisterTargets",
-        "elasticloadbalancing:DescribeLoadBalancerAttributes",
-        "elasticloadbalancing:DescribeTargetGroupAttributes",
-        "elasticloadbalancing:ConfigureHealthCheck",
-        "elasticloadbalancing:CreateListener",
-        "elasticloadbalancing:DescribeListeners",
-        "elasticloadbalancing:ApplySecurityGroupsToLoadBalancer",
-        "elasticloadbalancing:AttachLoadBalancerToSubnets",
-        "elasticloadbalancing:CreateLoadBalancerListeners",
-        "elasticloadbalancing:DescribeTargetHealth",
-        "elasticloadbalancing:ModifyTargetGroup"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "ECR",
-      "Effect": "Allow",
-      "Action": [
-        "ecr:GetAuthorizationToken",
-        "ecr:InitiateLayerUpload",
-        "ecr:ListImages",
-        "ecr:BatchCheckLayerAvailability",
-        "ecr:GetDownloadUrlForLayer",
-        "ecr:PutImage",
-        "ecr:BatchGetImage",
-        "ecr:DescribeImages",
-        "ecr:UploadLayerPart",
-        "ecr:CompleteLayerUpload",
-        "ecr:DescribeRepositories"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "AUTOSCALING",
-      "Effect": "Allow",
-      "Action": [
-        "autoscaling:DeleteAutoScalingGroup",
-        "autoscaling:DescribeScalingActivities",
-        "autoscaling:CreateLaunchConfiguration",
-        "autoscaling:DescribeAutoScalingGroups",
-        "autoscaling:UpdateAutoScalingGroup",
-        "autoscaling:CreateAutoScalingGroup",
-        "autoscaling:DescribeLaunchConfigurations",
-        "autoscaling:DeleteLaunchConfiguration"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "SSM",
-      "Effect": "Allow",
-      "Action": [
-        "ssm:GetParametersByPath",
-        "ssm:GetParameter",
-        "ssm:DeleteParameter",
-        "ssm:DescribeParameters",
-        "ssm:GetParameters",
-        "ssm:DeleteParameters",
-        "ssm:PutParameter",
-        "ssm:GetParameterHistory"
-      ],
-      "Resource": "*"
-    },
-    {
-      "Sid": "Full",
-      "Effect": "Allow",
-      "Action": ["cloudformation:*", "eks:*"],
-      "Resource": "*"
-    },
-    {
-      "Sid": "KMS",
-      "Effect": "Allow",
-      "Action": ["kms:DescribeKey"],
-      "Resource": "*"
-    },
-    {
-      "Sid": "IAMGetRole",
-      "Effect": "Allow",
-      "Action": ["iam:GetRole"],
-      "Resource": "*"
-    }
-  ]
+    ]
 }
 ```
 
@@ -356,11 +259,17 @@ aws configure
 
 ### step-4: Installing eks using eksctl
 
+Lets us first generate keypair which we can use to login into k8s nodes.
+
+```
+ssh-keygen -t rsa -b 4096 -f ./k8slearning
+```
+
 **dry run of cluster creation**
 
 
 ```
-eksctl create cluster --name k8slearning  --version 1.19 --nodegroup-name pool1 --node-type t2.micro --region us-east-1 --dry-run
+eksctl create cluster --name k8slearningupdated  --version 1.19 --nodegroup-name pool1 --node-type t2.micro --nodes 2 --node-volume-size 50 --node-volume-type gp2 --ssh-access --ssh-public-key ./k8slearning.pub --dry-run
 ```
 
 **Note**: Dry run will not create any resources instead it will just show/print what resources it is going to create.
@@ -368,8 +277,10 @@ eksctl create cluster --name k8slearning  --version 1.19 --nodegroup-name pool1 
 **cluster creation**
 
 ```
-eksctl create cluster --name k8slearning  --version 1.19 --nodegroup-name pool1 --node-type t2.micro --region us-east-1
+eksctl create cluster --name k8slearningupdated  --version 1.19 --nodegroup-name pool1 --node-type t2.micro --nodes 2 --node-volume-size 50 --node-volume-type gp2 --ssh-access --ssh-public-key ./k8slearning.pub
 ```
+
+**Note** Cluster creation takes lot of time. So please wait..
 
 By default kubeconfig file will be writtent ~/.kube/config. 
 
@@ -400,6 +311,14 @@ to get the component status then you can use the below command.
 ```
 kubectl get cs
 ```
+
+you can use the already generated key to login into the worker nodes. for ex:
+
+kubectl get nodes -o wide
+
+the above command provides worker node details(names,ip address). get the external of any of the worker node.
+
+ssh -i k8slearning ec2-user@\<External address\>
 
 ## Deleting the cluster
 

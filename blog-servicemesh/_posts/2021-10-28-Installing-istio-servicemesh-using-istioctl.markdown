@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Installing Istio Servicemesh"
-date:   2021-09-18 12:41:25 +0530
+title:  "Installing Istio Servicemesh using istioctl"
+date:   2021-10-28 04:00:00 +0530
 category: servicemesh
 ---
 

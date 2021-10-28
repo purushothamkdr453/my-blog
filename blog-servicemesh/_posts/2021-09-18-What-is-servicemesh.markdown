@@ -39,7 +39,7 @@ Some of the popular servicemesh solutions are
 
 ## Architecture
 
-![alt text](istio-architecture.png)
+![alt text](/assets/images/istio-architecture.png)
 
 ## Pre-requisites
 
@@ -55,11 +55,11 @@ checking the status of minkube. Execute the below command.
 
 minikube status
 
-![alt text](minikube-status.png)
+![alt text](/assets/images/minikube-status.png)
 
 kubectl get nodes
 
-![alt text](kubectl-getnodes.png)
+![alt text](/assets/images/kubectl-getnodes.png)
 
 ### step-1: Installing istio service mesh
 
@@ -83,7 +83,7 @@ Now lets install istio using istioctl command
 istioctl install --set profile=demo -y
 ```
 
-![alt text](istio-install.png)
+![alt text](/assets/images/istio-install.png)
 
 **Note** the above command creates new namespace `istio-system` and deploys istio components inside that namespace. you can verify that by executing the below commands.
 

@@ -142,14 +142,37 @@ create 3 virtual machines(bastion, k8smaster, k8sworker1).
 
 Console -> select `Compute` -> Select `instances` -> click `create instance` -> provide name as `bastion` -> select image as `centos` & shape as `VM.Standard.E3.Flex` with 1 cpu & 1 gb ram -> select `networking` as k8slearning -> select `subnet` as public -> select `add ssh keys` then select `upload public key` -> upload `k8slearning.pub` public key which is created above -> click `create`.
 
+![alt text](/assets/images/oracle-bastion-centos-image-shape-spec.png)
+
+![alt text](/assets/images/oracle-bastion-centos-networking-spec.png)
+
+![alt text](/assets/images/oracle-bastion-centos-sshkeys.png)
+
 **k8smaster**
 
 Console -> select `Compute` -> Select `instances` -> click `create instance` -> provide name as `k8smaster` -> select image as `centos` & shape as `VM.Standard.E3.Flex` with 2 cpu & 4 gb ram -> select `networking` as k8slearning -> select `subnet` as private -> select `add ssh keys` then select `upload public key` -> upload `k8slearning.pub` public key which is created above -> click `create`.
+
+![alt text](/assets/images/oracle-k8smaster-centos-hostdetails.png)
+
+![alt text](/assets/images/oracle-k8smaster-centos-image-shape-spec.png)
+
+![alt text](/assets/images/oracle-k8smaster-centos-networking-spec.png)
+
+![alt text](/assets/images/oracle-k8smaster-centos-sshkeys.png)
+
 
 **k8sworker1**
 
 
 Console -> select `Compute` -> Select `instances` -> click `create instance` -> provide name as `k8sworker1` -> select image as `centos` & shape as `VM.Standard.E3.Flex` with 2 cpu & 4 gb ram -> select `networking` as k8slearning -> select `subnet` as private -> select `add ssh keys` then select `upload public key` -> upload `k8slearning.pub` public key which is created above -> click `create`.
+
+![alt text](/assets/images/oracle-k8sworker1-centos-hostdetails.png)
+
+![alt text](/assets/images/oracle-k8smaster-centos-image-shape-spec.png)
+
+![alt text](/assets/images/oracle-k8smaster-centos-networking-spec.png)
+
+![alt text](/assets/images/oracle-k8smaster-centos-sshkeys.png)
 
 ### step-7: Disable swap firewall and set some other pre requisities
 

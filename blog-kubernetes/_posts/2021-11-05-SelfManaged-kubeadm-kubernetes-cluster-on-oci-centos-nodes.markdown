@@ -13,7 +13,7 @@ category: kubernetes
        - [step-4: Creating Route rules and security lists](#step-4-creating-route-rules-and-security-lists)
        - [step-5: Creating public and private subnets](#step-5-creating-public-and-private-subnets)
        - [step-6: Create oracle virtual machine nodes](#step-6:-create-oracle-virtual-machine-nodes)
-       - [step-7: Disable swap firewall and set some other pre requisities](#step-7:-disable-swap-firewall-and-set-some-other-pre-requisities)
+       - [step-7: Disable swap and set some other pre requisities](#step-7:-disable-swap-and-set-some-other-pre-requisities)
        - [step-8: installing container run time](#step-8:-installing-container-run-time)
        - [step-9: installing k8s components](#step-9:-installing-k8s-components)
        - [step-10: kubernetes initialization](#step-10:-kubernetes-initialization)
@@ -174,7 +174,7 @@ Console -> select `Compute` -> Select `instances` -> click `create instance` -> 
 
 ![alt text](/assets/images/oracle-k8smaster-centos-sshkeys.png)
 
-### step-7: Disable swap firewall and set some other pre requisities
+### step-7: Disable swap and set some other pre requisities
 
 
 Verify that `Product uuid` & `mac address` is unique for every node(for both masters/workers). You can get product uuid by running the below command.
@@ -219,6 +219,33 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
 
 sudo sysctl --system
+```
+
+**Adding firewall rules**
+
+`on master`
+
+```
+firewall-cmd --permanent --add-port=6443/tcp
+firewall-cmd --permanent --add-port=2379-2380/tcp
+firewall-cmd --permanent --add-port=10250/tcp
+firewall-cmd --permanent --add-port=10251/tcp
+firewall-cmd --permanent --add-port=10252/tcp
+firewall-cmd --permanent --add-port=10255/tcp
+firewall-cmd --permanent --add-port=8472/udp
+firewall-cmd --add-masquerade --permanent
+systemctl restart firewalld
+```
+
+`on worker nodes`
+
+```
+firewall-cmd --permanent --add-port=10250/tcp
+firewall-cmd --permanent --add-port=10255/tcp
+firewall-cmd --permanent --add-port=8472/udp
+firewall-cmd --permanent --add-port=30000-32767/tcp
+firewall-cmd --add-masquerade --permanent
+systemctl restart firewalld
 ```
 
 ### step-8: installing container run time
@@ -357,4 +384,14 @@ kubectl run busybox --image busybox --command sleep 1d
 # verify whether pod is running or not
 kubectl get pod busybox
 ```
+
+Awesome so we are able to deploy the pods successfully. Lets deploy nginx pod and expose it as `Loadbalancer` service
+
+```
+kubectl expose pod nginx --type=LoadBalancer --port=80
+
+kubectl get svc nginx
+```
+
+if you notice the output of `kubectl get svc nginx` external_ip is in pending status. Why service of Loadbalancer type didnt get the external ip?
 

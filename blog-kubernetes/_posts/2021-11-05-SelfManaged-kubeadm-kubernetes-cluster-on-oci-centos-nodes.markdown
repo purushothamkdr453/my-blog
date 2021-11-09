@@ -21,6 +21,7 @@ category: kubernetes
        - [step-12: installing overlay network](#step-12:-installing-overlay-network)
        - [step-13: taint the master node](#step-13:-taint-the-master-node)
        - [step-14: testing](#step-14:-testing)
+       - [step-15: Deploying oci cloud controller manager](#step-15:-deploying-oci-cloud-controller-manager)
 
 ## selfmanaged kubeadm k8s cluster on oracle centos nodes
 
@@ -375,5 +376,210 @@ kubectl expose pod nginx --type=LoadBalancer --port=80
 kubectl get svc nginx
 ```
 
-if you notice the output of `kubectl get svc nginx` external_ip is in pending status. Why service of Loadbalancer type didnt get the external ip?
+if you notice the output of `kubectl get svc nginx` external_ip is in pending status. it is because k8s nodes are not able to talk or have permissions to `oci cloud api interface` to create loadbalancer. 
+
+So to get rid of this we need to deploy `oci cloud controller manager`. steps are mentioned below.
+
+### step-15: Deploying oci cloud controller manager
+
+Execute the below command on `both master node & worker nodes`.
+
+```
+kubeadm reset
+```
+
+**Note:** The above command removes everything that was created.
+
+Create a file named `kube-init.yaml` on master node with the below content.
+
+```
+apiVersion: kubeadm.k8s.io/v1beta2
+bootstrapTokens:
+- groups:
+  - system:bootstrappers:kubeadm:default-node-token
+  token: abcdef.0123456789abcdef
+  ttl: 24h0m0s
+  usages:
+  - signing
+  - authentication
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: /run/containerd/containerd.sock
+  name: k8smaster
+  taints:
+  - effect: NoSchedule
+    key: node-role.kubernetes.io/master
+  kubeletExtraArgs:
+    cloud-provider: external
+    provider-id: <ocid of master node>
+---
+apiServer:
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta2
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+controllerManager:
+  extraArgs:
+    cloud-provider: external
+dns:
+  type: CoreDNS
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+imageRepository: k8s.gcr.io
+kind: ClusterConfiguration
+kubernetesVersion: v1.20.0
+networking:
+  dnsDomain: cluster.local
+  serviceSubnet: 10.96.0.0/12
+  podSubnet: 192.168.0.0/16
+scheduler: {}
+---
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+cgroupDriver: systemd
+```
+
+**Note** \<ocid of master node\> replace this with ocid of master node. ocid are unique for every node.
+
+create a file named `kube-join.yaml` on worker nodes with the below content.
+
+```
+apiVersion: kubeadm.k8s.io/v1beta2
+caCertPath: /etc/kubernetes/pki/ca.crt
+discovery:
+  bootstrapToken:
+    apiServerEndpoint: k8smaster:6443
+    token: abcdef.0123456789abcdef
+    unsafeSkipCAVerification: true
+  timeout: 5m0s
+  tlsBootstrapToken: abcdef.0123456789abcdef
+kind: JoinConfiguration
+nodeRegistration:
+  name: k8sworker1
+  taints: null
+  kubeletExtraArgs:
+    cloud-provider: external
+    provider-id: <ocid of worker node>
+```
+
+**Note** \<ocid id of worker node\> replace this with ocid of worker node. ocid are unique for every node. so if you are joining multiple worker nodes then makesure you update the placeholder with respective node's ocid.
+
+**on master node**
+
+```
+kubeadm init --config kube-init.yaml
+kubectl --kubeconfig=/etc/kubernetes/admin.conf apply -f https://docs.projectcalico.org/manifests/calico.yaml
+```
+
+**on worker nodes**
+
+```
+kubeadm join --config kube-join.yaml
+```
+
+now create a file with named `cloud-provider-example.yaml` with the below content.
+
+```
+auth:
+  region: us-phoenix-1
+  tenancy: ocid1.tenancy.oc1..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  user: ocid1.user.oc1..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  key: |
+    -----BEGIN RSA PRIVATE KEY-----
+    <snip>
+    -----END RSA PRIVATE KEY-----
+  # Omit if there is not a password for the key
+  passphrase: supersecretpassword
+  fingerprint: 8c:bf:17:7b:5f:e0:7d:13:75:11:d6:39:0d:e2:84:74
+
+  # Omit all of the above options then set useInstancePrincipals to true if you
+  # want to use Instance Principals API access
+  # (https://docs.us-phoenix-1.oraclecloud.com/Content/Identity/Tasks/callingservicesfrominstances.htm).
+  # Ensure you have setup the following OCI policies and your kubernetes nodes are running within them
+  # allow dynamic-group [your dynamic group name] to read instance-family in compartment [your compartment name]
+  # allow dynamic-group [your dynamic group name] to use virtual-network-family in compartment [your compartment name]
+  # allow dynamic-group [your dynamic group name] to manage load-balancers in compartment [your compartment name]
+  useInstancePrincipals: false
+
+# compartment configures Compartment within which the cluster resides.
+compartment: ocid1.compartment.oc1..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+# vcn configures the Virtual Cloud Network (VCN) within which the cluster resides.
+vcn: ocid1.vcn.oc1..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+loadBalancer:
+  # subnet1 configures one of two subnets to which load balancers will be added.
+  # OCI load balancers require two subnets to ensure high availability.
+  subnet1: ocid1.subnet.oc1.phx.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+  # subnet2 configures the second of two subnets to which load balancers will be
+  # added. OCI load balancers require two subnets to ensure high availability.
+  subnet2: ocid1.subnet.oc1.phx.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+  # SecurityListManagementMode configures how security lists are managed by the CCM.
+  # If you choose to have security lists managed by the CCM, ensure you have setup the following additional OCI policy:
+  # Allow dynamic-group [your dynamic group name] to manage security-lists in compartment [your compartment name]
+  #
+  #   "All" (default): Manage all required security list rules for load balancer services.
+  #   "Frontend":      Manage only security list rules for ingress to the load
+  #                    balancer. Requires that the user has setup a rule that
+  #                    allows inbound traffic to the appropriate ports for kube
+  #                    proxy health port, node port ranges, and health check port ranges.
+  #                    E.g. 10.82.0.0/16 30000-32000.
+  #   "None":          Disables all security list management. Requires that the
+  #                    user has setup a rule that allows inbound traffic to the
+  #                    appropriate ports for kube proxy health port, node port
+  #                    ranges, and health check port ranges. E.g. 10.82.0.0/16 30000-32000.
+  #                    Additionally requires the user to mange rules to allow
+  #                    inbound traffic to load balancers.
+  securityListManagementMode: All
+
+  # Optional specification of which security lists to modify per subnet. This does not apply if security list management is off.
+  securityLists:
+    ocid1.subnet.oc1.phx.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa: ocid1.securitylist.oc1.iad.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    ocid1.subnet.oc1.phx.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb: ocid1.securitylist.oc1.iad.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+# Optional rate limit controls for accessing OCI API
+rateLimiter:
+  rateLimitQPSRead: 20.0
+  rateLimitBucketRead: 5
+  rateLimitQPSWrite: 20.0
+  rateLimitBucketWrite: 5
+```
+
+**Note**: Make sure you replace the the above details with your details.
+
+After once the details are updated then execute the below command.
+
+```
+kubectl  create secret generic oci-cloud-controller-manager \
+     -n kube-system                                           \
+     --from-file=cloud-provider.yaml=cloud-provider-example.yaml
+```
+
+Now lets deploy the `oci cloud controller manager` using the below commands.
+
+```
+kubectl apply -f https://raw.githubusercontent.com/oracle/oci-cloud-controller-manager/master/manifests/cloud-controller-manager/oci-cloud-controller-manager.yaml
+
+kubectl apply -f https://raw.githubusercontent.com/oracle/oci-cloud-controller-manager/master/manifests/cloud-controller-manager/oci-cloud-controller-manager-rbac.yaml
+```
+
+Now makesure the `cloud controller` pod is running in `kube-system` namespace.
+
+```
+kubectl -n kube-system get po | grep oci
+```
+
+Now try to create service of loadbalancer.
+
+```
+kubectl run nginx --image nginx
+kubectl expose pod nginx --type=LoadBalancer --port=80
+```
+
+
+
+
 

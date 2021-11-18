@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "CKS - System Hardening using Apparmor"
-date:   2021-11-17 07:40:00 +0530
+date:   2021-11-18 09:10:00 +0530
 category: cks
 ---
 

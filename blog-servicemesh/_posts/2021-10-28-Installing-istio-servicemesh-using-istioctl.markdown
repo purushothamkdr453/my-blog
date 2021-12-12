@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Installing Istio Servicemesh using istioctl"
+title:  "Installing Istio Servicemesh using istioctl - Part 1"
 date:   2021-10-28 04:00:00 +0530
 category: servicemesh
 ---
@@ -12,7 +12,7 @@ category: servicemesh
    - [Setup](#setup)
        - [step-1: Installing istio service mesh](#step-1-installing-istio-service-mesh)
        - [step-2: Labeling the namespace](#step-2-labeling-the-namespace)
-       - [step-3: testing](#step-3-testing)
+       - [step-3: deploying sample book info application](#step-3-deploying-sample-book-info-application)
     
 
 ## Servicemesh
@@ -51,9 +51,17 @@ you can install any kubernetes cluster i.e `managed kubernetes` or `kubeadm` or 
 
 ## Setup
 
-checking the status of minkube. Execute the below command.
+Execute the below command to start minikube.
 
+```
+minikube start --cpus 4 --memory 8192 --addons=ingress
+```
+
+status of minikube can be verified by using the below command.
+
+```
 minikube status
+```
 
 ![alt text](/assets/images/minikube-status.png)
 
@@ -87,14 +95,18 @@ istioctl install --set profile=demo -y
 
 **Note** the above command creates new namespace `istio-system` and deploys istio components inside that namespace. you can verify that by executing the below commands.
 
+```
+# This command displays all the components that are deployed
+istioctl verify-install
 kubectl get ns
 kubectl get all -n istio-system
+```
 
 three pods will be installed inside `istio-system`
 
-istiod pod -> core component of istio
-istio-ingressgateway pod -> handles incoming requests of servicemesh
-istio-egressgateway pod -> handles requests going out of servicemesh
+istiod pod -> core component of istio <br/>
+istio-ingressgateway pod -> handles incoming requests of servicemesh <br/>
+istio-egressgateway pod -> handles requests going out of servicemesh <br/>
 
 services are also installed for respective pods, you can check in the output of `kubectl get all -n istio-system`
 
@@ -104,41 +116,51 @@ for demonstration purpose lets create a new namespace called `learning`
 
 ```
 kubectl create ns learning
-```
-
-lets label this namespace with `istio-injection`
-
-```
 kubectl label namespace learning istio-injection=enabled
 ````
 
-you can verify the labels of namespace by executing below command.
+## step-3: deploying sample book info application
+
+lets deploy the sample `bookinfo` application inside `learning` namespace. Execute the below command.
 
 ```
-kubectl get ns learning --show-labels
+kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml -n learning
 ```
 
-## step-3: testing
+Output of the above command should be as follows.
 
-lets test the functionality of istio by deploying a sample pod inside `learning` namespace.
+![alt text](/assets/images/istio-bookinfo-deployment.png)
 
-```
-kubectl run webapp --image nginx -n learning
-```
-
-if you run `kubectl get pods -n learning` namespace you should see a pod up & running. if you closely observe this pod contains 2 containers which can be noticed under `READY` column.
+if you run `kubectl get pods -n learning` namespace you should see a pod up & running. if you closely observe pod contains 2 containers which can be noticed under `READY` column.
 
 **How did we get 2 containers inside pod**
 
-we have labeled the `learning` namespace with istio-injection so if we create any pod inside this namespace then automatically istio core component(istiod running under istio-system) will inject a new sidecar container to pod so you will get 2 containers inside the pod.
+we have labeled the `learning` namespace with istio-injection so if we create any pod inside this namespace then automatically istio core component(istiod running under istio-system) will inject a new sidecar container(istio-proxy) to pod so you will get 2 containers inside the pod.
 
-```
-kubectl describe pod webapp -n learning
-```
-
-nginx - main container
 istio-proxy - sidecar proxy container
 
 this `sidecar proxy` container will intercept the traffic between 2 microservices. so if we configure any rules at proxy level then microservices interaction will be enabled or disabled based on these proxy rule/configs. you can observe this behavior from the architecture diagram above.
 
+Lets try to access `productpage` endpoint from `ratings` pod. Execute the below command.
 
+```
+kubectl -n learning exec $(kubectl get pods -n learning | grep -v -i 'name' | grep -i 'ratings' | awk '{print $1}') -c ratings -- curl -sS http://productpage:9080/productpage
+```
+
+As you can see we are successfully able to access the 'productpage' url from ratings pod. however we will not be able to access this endpoint outside the pod/cluster. To makethe application accessible from outside create `ingress gateway` which maps a path to a route at the edge of your mesh.
+
+```
+kubectl -n learning apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
+```
+
+Since we can not get a loadbalancer ip in minikube. let us execute the port-forward on `istiod` pod which resides in `istio-system` namespace. execute the below command.
+
+```
+kubectl -n istio-system port-forward $(kubectl get pods -n istio-system | grep -v 'NAME' | grep 'istio-ingressgateway' | awk '{print $1}') 8080:8080
+```
+
+**Note** The above command will be executed in foreground. let it run and dont kill it. For all the subsequent operations & commmands, open new terminal and navigate to the istio location wherever you have downloaded i.e (cd istio-1.11.3 & export PATH=$PWD/bin:$PATH).
+
+Now let us go to the browser and try to access the endpoint i.e http://localhost:8080/productpage. Screenshot below for reference.
+
+![alt text](/assets/images/product-page-output.png)

@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Installing Istio Servicemesh using istioctl - Part 1"
-date:   2021-10-28 04:00:00 +0530
+date:   2021-12-19 04:00:00 +0530
 category: servicemesh
 ---
 
@@ -9,6 +9,7 @@ category: servicemesh
    - [Overview](#overview)
    - [Architecture](#architecture)
    - [Pre-requisites](#pre-requisites)
+   - [Application](#application)
    - [Setup](#setup)
        - [step-1: Installing istio service mesh](#step-1-installing-istio-service-mesh)
        - [step-2: Labeling the namespace](#step-2-labeling-the-namespace)
@@ -48,6 +49,12 @@ Some of the popular servicemesh solutions are
 to install `helm` refer to [this](https://helm.sh/docs/intro/install/)
 
 you can install any kubernetes cluster i.e `managed kubernetes` or `kubeadm` or `minikube`. 
+
+## Application
+
+We will be deploying bookinfo application. its architecture looks like below.
+
+![alt text](/assets/images/bookinfo-application.png)
 
 ## Setup
 
@@ -147,13 +154,7 @@ Lets try to access `productpage` endpoint from `ratings` pod. Execute the below 
 kubectl -n learning exec $(kubectl get pods -n learning | grep -v -i 'name' | grep -i 'ratings' | awk '{print $1}') -c ratings -- curl -sS http://productpage:9080/productpage
 ```
 
-As you can see we are successfully able to access the 'productpage' url from ratings pod. however we will not be able to access this endpoint outside the pod/cluster. To makethe application accessible from outside create `ingress gateway` which maps a path to a route at the edge of your mesh.
-
-```
-kubectl -n learning apply -f samples/bookinfo/networking/bookinfo-gateway.yaml
-```
-
-Since we can not get a loadbalancer ip in minikube. let us execute the port-forward on `istiod` pod which resides in `istio-system` namespace. execute the below command.
+As you can see we are successfully able to access the 'productpage' url from ratings pod. Now lets try to access the application from outside the cluster. Since we can not get a loadbalancer in minikube let us execute the port-forward on `istiod` pod which resides in `istio-system` namespace. execute the below command.
 
 ```
 kubectl -n istio-system port-forward $(kubectl get pods -n istio-system | grep -v 'NAME' | grep 'istio-ingressgateway' | awk '{print $1}') 8080:8080
@@ -161,6 +162,6 @@ kubectl -n istio-system port-forward $(kubectl get pods -n istio-system | grep -
 
 **Note** The above command will be executed in foreground. let it run and dont kill it. For all the subsequent operations & commmands, open new terminal and navigate to the istio location wherever you have downloaded i.e (cd istio-1.11.3 & export PATH=$PWD/bin:$PATH).
 
-Now let us go to the browser and try to access the endpoint i.e http://localhost:8080/productpage. Screenshot below for reference.
+Now let us go to the browser and try to access the endpoint i.e http://localhost:8080/productpage.
 
-![alt text](/assets/images/product-page-output.png)
+Are you able to view the productpage? Obviously No? Why? To understand why it is not working lets go to the second part of the tutorial.

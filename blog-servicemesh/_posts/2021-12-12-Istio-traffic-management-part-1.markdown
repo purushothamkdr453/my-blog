@@ -59,4 +59,4 @@ kubectl get virtualservice -n learning
 
 Now try to access the app at http://localhost:8080/productpage. Boom its working now. screenshot below for the reference.
 
-[alt text](/assets/images/product-page-output.png)
+![alt text](/assets/images/product-page-output.png)

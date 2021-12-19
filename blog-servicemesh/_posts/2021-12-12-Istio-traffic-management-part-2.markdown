@@ -19,7 +19,7 @@ category: servicemesh
 
 ## Pre-requisites
 
-Makesure you have followed all the instructions outlined in [previous blog]().
+Makesure you have followed all the instructions outlined in [previous blog](https://devopsbypr.in/blog-servicemesh/servicemesh/2021/12/18/Istio-traffic-management-part-1.html).
 
 ## Application
 

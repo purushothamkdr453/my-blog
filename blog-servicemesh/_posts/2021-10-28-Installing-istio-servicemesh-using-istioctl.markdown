@@ -164,4 +164,4 @@ kubectl -n istio-system port-forward $(kubectl get pods -n istio-system | grep -
 
 Now let us go to the browser and try to access the endpoint i.e http://localhost:8080/productpage.
 
-Are you able to view the productpage? Obviously No? Why? To understand why it is not working lets go to the second part of the tutorial.
+Are you able to view the productpage? Obviously No? Why? To understand why it is not working lets go to the [second part of the tutorial](https://devopsbypr.in/blog-servicemesh/servicemesh/2021/12/18/Istio-traffic-management-part-1.html).

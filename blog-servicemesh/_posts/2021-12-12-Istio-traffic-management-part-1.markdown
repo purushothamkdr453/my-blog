@@ -60,3 +60,7 @@ kubectl get virtualservice -n learning
 Now try to access the app at http://localhost:8080/productpage. Boom its working now. screenshot below for the reference.
 
 ![alt text](/assets/images/product-page-output.png)
+
+If you notice for every refresh of the page, you see a different rating i.e ratings in black color, ratings in red color & no ratings and it is round robin balanced. This is default behavior in kubernetes. 
+
+Is it possible to apply weighted traffic i.e 99% percent traffic(black ratings) & 1% percent traffic(red ratings)? Yes it is possible. To checkout this scenario refer to [part-2 section of traffic management]().

@@ -63,4 +63,4 @@ Now try to access the app at http://localhost:8080/productpage. Boom its working
 
 If you notice for every refresh of the page, you see a different rating i.e ratings in black color, ratings in red color & no ratings and it is round robin balanced. This is default behavior in kubernetes. 
 
-Is it possible to apply weighted traffic i.e 99% percent traffic(black ratings) & 1% percent traffic(red ratings)? Yes it is possible. To checkout this scenario refer to [part-2 section of traffic management]().
+Is it possible to apply weighted traffic i.e 99% percent traffic(black ratings) & 1% percent traffic(red ratings)? Yes it is possible. To checkout this scenario refer to [traffic management part-2](https://devopsbypr.in/blog-servicemesh/servicemesh/2021/12/18/Istio-traffic-management-part-2.html).

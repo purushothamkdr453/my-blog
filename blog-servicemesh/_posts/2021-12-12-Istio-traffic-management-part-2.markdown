@@ -52,11 +52,11 @@ spec:
     - destination:
         host: reviews
         subset: v2
-      weight: 99
+      weight: 80
     - destination:
         host: reviews
         subset: v3
-      weight: 1
+      weight: 20
 ```
 
 copy the below content to `reviews-destinationrules.yaml`

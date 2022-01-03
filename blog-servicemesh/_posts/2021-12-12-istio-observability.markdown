@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Istio observavility"
+title:  "Istio observability"
 date:   2021-12-19 06:00:00 +0530
 category: servicemesh
 ---

@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Istio Security Authorization - Part 2"
+title:  "Istio Security part 2 - Authorization"
 date:   2021-12-19 07:10:00 +0530
 category: servicemesh
 ---
@@ -8,138 +8,146 @@ category: servicemesh
 - [Security](#Security)
    - [Overview](#overview)
    - [Pre-requisites](#pre-requisites)
-   - [Creating test namespace](#creating-test-namespace)
-   - [Deploying httpbin to test namespace](#deploying-httpbin-to-test-namespace)
-   - [Peer authentication policy](#peer-authentication-policy)
+   - [Application](#application)
+   - [Restricting access to bookinfo app from frontend namespace](#restricting-access-to-bookinfo-app-from-frontend-namespace)
+   - [Testing](#testing)
 
 
 ## Security
 
 ## Overview
 
-In this blog we will look into authorization part of istio security.
+In this blog we will look into authorization part of istio security. Istio Authorization Policy enables access control on workloads in the mesh.
 
 ## Pre-requisites
 
-Makesure you have followed all the instructions outlined in [istio setup](https://devopsbypr.in/blog-servicemesh/servicemesh/2021/12/18/Installing-istio-servicemesh-using-istioctl.html) and [traffic management part-1](https://devopsbypr.in/blog-servicemesh/servicemesh/2021/12/18/Istio-traffic-management-part-1.html).
+Makesure you have the followed all the instructions specified in [previous blog](https://devopsbypr.in/blog-servicemesh/servicemesh/2021/12/19/istio-security-part-1-authentication.html).
 
-Dont touch the port-forward command which was executed( mentioned in part-1). Open new terminal and navigate to the path where istioctl package was downloaed. Execute the below commads.
+## Application
 
-```
-cd istio-1.11.3
-export PATH=$PWD/bin:$PATH
-```
+![alt text](/assets/images/bookinfo-application.png)
 
-## Creating test namespace
+## Restricting access to bookinfo app from frontend namespace
 
-create a new namespace i.e `test` and enable istio-injection.
+lets restrict the access to bookinfo only from `frontend namespace pods`.
 
-```
-kubectl create ns test
-kubectl label ns test istio-injection=enabled
-```
-
-## Deploying httpbin to test namespace
-
-deploying nginx to test namespace. execute the below command.
-
-```
-kubectl -n test apply -f samples/httpbin/httpbin.yaml
-```
-
-Lets try to access the productpage application from nginx pod. Execute the below command. when you execute the below command you will get a successful response.
-
-```
-kubectl -n test exec -it $(kubectl -n test get pods | grep -vi 'name' | grep 'httpbin' | awk '{print $1}') -c istio-proxy -- curl http://productpage.learning:9080
-```
-
-## Peer authentication policy
-
-lets create a file named  `strict-mtls-to-bookinfo.yaml` with a below content. This policy applies to all the workloads in `learning` namespace.
-
-```
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  name: strict-mtls-to-bookinfo
-  namespace: learning
-spec:
-  mtls:
-    mode: STRICT
-```
-
-lets apply the policy.
-
-```
-kubectl apply -f strict-mtls-to-bookinfo.yaml
-```
-
-Verifying the created peer authentication policy.
-
-```
-kubectl get peerauthentication -n learning
-```
-
-Now if you try to access the bookinfo application from nginx pod, you will get an error.
-
-```
-kubectl -n test exec -it $(kubectl -n test get pods | grep -vi 'name' | grep 'httpbin' | awk '{print $1}') -c istio-proxy  -- curl http://productpage.learning:9080
-```
-
-Error you will get is as follows.
-
-![alt text](/assets/images/istio-security-authetication-mtls-error.png)
-
-Lets try to fix this
-
-create a file named `strict-mtls-to-nginx.yaml` with the below content.
-
-```
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  name: strict-mtls-to-nginx
-  namespace: test
-spec:
-  selector:
-    matchLabels:
-      app: frontend
-  mtls:
-    mode: STRICT
-```
-
-```
-kubectl apply -f strict-mtls-to-nginx.yaml
-```
-
-Lets try to fix this
-
-create a file named `enable-acccess-to-httpbin.yaml` with the below content.
+create a file named `restict-to-bookinfo-from-frontend.yaml` with below content.
 
 ```
 apiVersion: security.istio.io/v1beta1
 kind: AuthorizationPolicy
 metadata:
- name: enable-acccess-to-httpbin
+ name: restirct-access-from-frontend 
  namespace: learning
 spec:
+ selector:
+   matchLabels:
+     app: productpage
  action: ALLOW
  rules:
  - from:
    - source:
-       principals: ["cluster.local/ns/test/sa/frontend"]
+       namespaces: [ "frontend" ]
+   to:
+   - operation:
+       methods: ["GET"]
 ```
 
-lets apply the pollicy.
+lets apply the file.
 
 ```
-kubectl apply -f enabling-mtls-on-httpbin.yaml
+kubectl apply -f restict-to-bookinfo-from-frontend.yaml
 ```
 
-lets verify the created peerauthentication policy.
+lets verify the authorization policy created using below command.
 
 ```
-kubectl get peerauthentication -n test
+kubectl get authorizationpolicy -n learning
 ```
 
+lets create namespace `authtest`.
+
+```
+kubectl create ns authtest
+```
+
+create a file named `frontend.yaml` with below content.
+
+```
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: frontend
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    tier: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      serviceAccountName: frontend
+      containers:
+      - name: frontend
+        image: purushothamkdr453/frontend:v1
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 250m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    tier: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+```
+
+lets deploy the above application to `authtest` namespace.
+
+```
+kubectl -n authtest apply -f <(istioctl kube-inject -f frontend.yaml)
+```
+
+you can verify the deployed application using below command.
+
+```
+kubectl get pods -n authtest
+```
+
+## Testing
+
+lets try to access the `book info app` from `authtest` namespaces pod.
+
+**From authtest namespace app**
+
+```
+kubectl -n authtest exec $(kubectl get pods -n authtest | grep -v 'NAME' | awk '{print $1}') -c frontend -- curl -sS http://productpage.learning:9080/productpage
+```
+
+the above command throws an error i.e `RBAC: access denied`. This is expected because it voilates the condition specified in the above authorization policy.
+
+**From learning namespace app**
+
+```
+kubectl -n frontend exec $(kubectl get pods -n frontend | grep -v 'NAME' | awk '{print $1}') -c frontend -- curl -sS http://productpage.learning:9080/productpage
+```
+
+The above command provides successful response. as it satisfies the condition specified in authorization policy that we created earlier.
 

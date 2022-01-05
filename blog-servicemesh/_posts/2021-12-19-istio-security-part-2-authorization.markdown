@@ -1,7 +1,7 @@
 ---
 layout: post
-title:  "Istio Security Authentication - Part 1"
-date:   2021-12-19 07:00:00 +0530
+title:  "Istio Security Authorization - Part 2"
+date:   2021-12-19 07:10:00 +0530
 category: servicemesh
 ---
 
@@ -17,7 +17,7 @@ category: servicemesh
 
 ## Overview
 
-In this blog we will look into authentication part of istio security. we will enable peer to peer authentication between workloads.
+In this blog we will look into authorization part of istio security.
 
 ## Pre-requisites
 

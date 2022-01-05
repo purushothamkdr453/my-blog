@@ -382,11 +382,15 @@ Lets try to access the `bookinfo` productpage app from sample apps deployed in `
 
 **From Frontend namespace app**
 
+```
 kubectl -n frontend exec $(kubectl get pods -n frontend | grep -v 'NAME' | awk '{print $1}') -c frontend -- curl -sS http://productpage.learning:9080/productpage
+```
 
 **From test namespace app**
 
+```
 kubectl -n test exec $(kubectl get pods -n test | grep -v 'NAME' | awk '{print $1}') -- curl -sS http://productpage.learning:9080/productpage
+```
 
 Both the commands will provide you a successful response. This is good but how are we getting successful response from the test namespace app although it doesnt have any sidecar istio container. Well it is because by default istio configures the destination workloads to accept both plain text & encrypted traffic so which is why plain traffic request from `test namespace sample app` to `productpage` is working fine.
 
@@ -434,13 +438,17 @@ Now lets try to access the productpage app from both namespaces apps.
 
 **From Frontend namespace app**
 
+```
 kubectl -n frontend exec $(kubectl get pods -n frontend | grep -v 'NAME' | awk '{print $1}') -c frontend -- curl -sS http://productpage.learning:9080/productpage
+```
 
 You will get successful response from `frontend` namespace app.
 
 **From test namespace app**
 
+```
 kubectl -n test exec $(kubectl get pods -n test | grep -v 'NAME' | awk '{print $1}') -- curl -sS http://productpage.learning:9080/productpage
+```
 
 you will get the following error while try to access from `test` namespace app.
 
@@ -477,7 +485,9 @@ initiate the requests from `test namespace app` & `frontend namespace app`
 
 **From Frontend namespace app**
 
+```
 kubectl -n frontend exec $(kubectl get pods -n frontend | grep -v 'NAME' | awk '{print $1}') -c frontend -- curl -sS http://productpage.learning:9080/productpage
+```
 
 when you execute the above command output from terminal-1 looks like below.
 
@@ -487,7 +497,9 @@ The above output doesnt displays any clear text or curl headers which indicates 
 
 **From test namespace app**
 
+```
 kubectl -n test exec $(kubectl get pods -n test | grep -v 'NAME' | awk '{print $1}') -- curl -sS http://productpage.learning:9080/productpage
+```
 
 when you execute the above command output from terminal-1 looks like below.
 

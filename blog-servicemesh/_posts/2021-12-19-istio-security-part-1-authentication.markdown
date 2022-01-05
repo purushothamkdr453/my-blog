@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Istio Security Authentication - Part 1"
+title:  "Istio Security Part 1 - Authentication"
 date:   2021-12-19 07:00:00 +0530
 category: servicemesh
 ---

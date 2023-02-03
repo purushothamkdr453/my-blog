@@ -8,83 +8,82 @@ tags: argocd kubernetes devops gitops cd
 
 - [argocd](#argocd)
    - [Overview](#overview)
-   - [Architecture](#architecture)
-   - [Features](#features)
-   
+   - [pre-requisites](#pre-requisites)
+   - [Installation](#installation)
+       - [Using Kubectl](#using-kubectl)
+       - [Using kustomize](#using-kustomize)
+
 ## argocd
 
 ## Overview
 
 `argocd` is a declarative & continuous delivery tool for kubernetes. Argocd follows `Gitops principles`. Following are the Gitops principles.
 
-- Declarative Configuration
-- Version Controlled, Immutable Storage
-- Automatic Pull Operations
-- Continuous Reconciliation
+## pre-requisites
 
-Argocd also follows all the above mentioned principles. Lets understand more in details how argocd follows each one of the above principle.
+- kubernetes cluster
 
-**Declarative configuration** - All the configuration related to argocd(argocd apps, argocd projects etc etc) will be defined declaratively.
+## Installation
+
+Argocd can be installed in many ways i.e using kustomize or kubectl. We will discuss about all types of installation methods below.
+
+### Using kubectl
+
+
+```
+kubectl create namespace argocd
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.5.10/manifests/ha/install.yaml
+```
+
+wait until all the pods move into running state. you can verify it by executing the below command.
+
+```
+kubectl get pods -n argocd
+```
+
+Execute the port-forward command on `argocd-server` to access the argocd web gui.
+
+```
+kubectl -n argocd port-forward svc/argocd-server 8080:443
+```
+
+Now try to access the web gui at - https://localhost:8080
+
+![alt text](/assets/images/argocd-webgui.png)
+
+Username is `admin`
 <br/>
-**Version Controllerd** - Everything related to Argocd will be stored in Source code repository(for ex: Github).
-<br/>
-**Automatic Pull operations** - argocd pulls latest configuration changes from sourcecode tool whenever there is a change made to it(source code configuration). 
-<br/>
-**Continuous Reconciliation** - Argocd continuously checks the k8s cluster and if there is any change introduced manually then that change will be reverted by argocd.
+password - initial password is stored in secret which can be accessed using below command.
+
+```
+kubectl get secret argocd-initial-admin-secret -o json -n argocd | jq -r .data.password | base64 -d
+```
+
+Enter username and password in the login page. After successful login, Home page of argocd looks as follows.
+
+![alt text](/assets/images/argocd-homepage.png)
 
 
-## Architecture
+### Using kustomize
 
-![alt text](/assets/images/argocd-architecture.png)
+Makesure you have `kustomize` installed. if you dont have kustomize then refer the [documentation](https://kustomize.io/).
+create a file named `kustomization.yaml` with the following content.
 
-Argo CD is implemented as a kubernetes controller which continuously monitors running applications and compares the current, live state against the desired target state (as specified in the Git repo). A deployed application whose live state deviates from the target state is considered OutOfSync. Argo CD reports & visualizes the differences, while providing facilities to automatically or manually sync the live state back to the desired target state. Any modifications made to the desired target state in the Git repo can be automatically applied and reflected in the specified target environments.
+```
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
 
-**components**
+namespace: argocd
+resources:
+- https://raw.githubusercontent.com/argoproj/argo-cd/v2.5.10/manifests/ha/install.yaml
+```
 
-**API Server**
+execute the following command to install argocd.
 
-The API server is a gRPC/REST server which exposes the API consumed by the Web UI, CLI, and CI/CD systems. It has the following responsibilities:
+```
+kubectl create ns argocd
+kustomize build . | kubectl -n argocd apply -f -
+```
 
-- application management and status reporting
-- invoking of application operations (e.g. sync, rollback, user-defined actions)
-- repository and cluster credential management (stored as K8s secrets)
-- authentication and auth delegation to external identity providers
-- RBAC enforcement
-- listener/forwarder for Git webhook events
+wait until all the pods move into running state. Then follow the same steps mentioned previously to access the argocd webgui.
 
-**Repository Server**
-
-The repository server is an internal service which maintains a local cache of the Git repository holding the application manifests. It is responsible for generating and returning the Kubernetes manifests when provided the following inputs:
-
-repository URL
-revision (commit, tag, branch)
-application path
-template specific settings: parameters, helm values.yaml
-
-
-**Application controller**
-
-The application controller is a Kubernetes controller which continuously monitors running applications and compares the current, live state against the desired target state (as specified in the repo). It detects OutOfSync application state and optionally takes corrective action. It is responsible for invoking any user-defined hooks for lifecycle events (PreSync, Sync, PostSync).
-
-## Features
-
-- Automated deployment of applications to specified target environments
-- Support for multiple config management/templating tools (Kustomize, Helm, Jsonnet, plain-YAML)
-- Ability to manage and deploy to multiple clusters
-- SSO Integration (OIDC, OAuth2, LDAP, SAML 2.0, GitHub, GitLab, Microsoft, LinkedIn)
-- Multi-tenancy and RBAC policies for authorization
-- Rollback/Roll-anywhere to any application configuration committed in Git repository
-- Health status analysis of application resources
-- Automated configuration drift detection and visualization
-- Automated or manual syncing of applications to its desired state
-- Web UI which provides real-time view of application activity
-- CLI for automation and CI integration
-- Webhook integration (GitHub, BitBucket, GitLab)
-- Access tokens for automation
-- PreSync, Sync, PostSync hooks to support complex application rollouts (e.g.blue/green & canary upgrades)
-- Audit trails for application events and API calls
-- Prometheus metrics
-- Parameter overrides for overriding helm parameters in Git
-
-
-We will be taking more about all the above features in the subsequent blogs.

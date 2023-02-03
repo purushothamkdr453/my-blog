@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "What is Argocd? Argocd Basics & Architecture?"
+title:  "Argocd Installation"
 date:   2023-02-03 04:00:00 +0530
 category: argocd
 tags: argocd kubernetes devops gitops cd
